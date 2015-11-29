@@ -172,8 +172,8 @@ reg [32:0] alu_hold;                    // copy of alu_out
 wire z = ~|alu_hold[31:0];              // zero flag 
 wire c = alu_hold[32];                  // carry out
 wire n = alu_hold[31];                  // negative flag
-reg v15;                                //
-wire lt = v15 ^ c;                      // less-than flag
+reg v31;                                // overflow bit
+wire lt = v31 ^ c;                      // less-than flag
 wire ci = 0;                            // carry in, not used
 reg alu;                                // alu operation
 reg imm;                                // immediate operand
@@ -478,13 +478,13 @@ always @*
     endcase
 
 /*
- * v15 is the XOR bit 15 of add operands. It is used 
+ * v31 is the XOR bit 31 of add operands. It is used 
  * later for calculation of less-than flag. 
  */
 
 always @(posedge clk)
     if( ~iowait )
-        v15 <= dst[15] ^ (alu_op[0] ? immval[15] : src[15]);
+        v31 <= dst[31] ^ (alu_op[0] ? immval[31] : src[31]);
 
 always @(posedge clk)
     if( ~iowait )
