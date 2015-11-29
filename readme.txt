@@ -1,46 +1,75 @@
 X18-32 CPU  By Arlet Ottens <arlet@c-scape.nl>
 
 
-The X18 CPU is a small CPU core for FPGA control tasks. It is meant to run from 
-Xilinx FPGA block RAM, exploiting the 2 extra parity bits for free extra opcode space.
+The X18 CPU is a small CPU core for FPGA control tasks. It is meant to run
+from Xilinx FPGA block RAM, exploiting the 2 extra parity bits for free
+extra opcode space.
 
-It has 16 registers, and a small internal stack (not accessible for programs). It uses 
-a Harvard architecture, but the code space is also accessible in the data space through
-the use a dual port block RAM. 
+It has 16 registers, and a small internal stack (not accessible for
+programs). It uses a Harvard architecture, but the code space is also
+accessible in the data space through the use a dual port block RAM.
 
-Most instructions run single cycle, except memory loads/moves, which take two cycles. 
-The barrel shifter operations also take two cycles, to allow extra pipelining and higher
-clock rate. The same applies to the optional multiply instruction.
+Most instructions run single cycle, except memory loads/moves, which take
+two cycles.  The barrel shifter operations also take two cycles, to allow
+extra pipelining and higher clock rate. The same applies to the optional
+multiply instruction.
 
 The project goals were:
 
-- high code density
-- minimal resources/simplicity
-- high speed
+- high code density 
+- minimal resources/simplicity 
+- high speed 
 - rich memory operations (auto inc/dec and copy)
 
-Because the CPU is meant to be used for different control tasks inside an FPGA, it is 
-hard to specify exactly what it needs to have. The simplicity of the design allows fairly
-easily tailoring to a specific task where you can remove instructions you don't need, and
-replace them with other ones. 
+Because the CPU is meant to be used for different control tasks inside an
+FPGA, it is hard to specify exactly what it needs to have. The simplicity
+of the design allows fairly easily tailoring to a specific task where you
+can remove instructions you don't need, and replace them with other ones.
 
- Instruction format:
+Instruction format:
+
+
+ALU Immediate:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+  | 0 | 0 |   operation   |      dst      |              imm              | 
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+Move:
 
    17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 0 | 0 |   operation   |      dst      |              imm              | - alu imm
+  | 0 | 1 | smode | dmode |      dst      |      src      |     offset    | 
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 0 | 1 | smode | dmode |      dst      |      src      |     offset    | - mov
+
+ALU:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 1 | 0 |   operation   |      dst      |      src      |    reserved   | - alu 
+  | 1 | 0 |   operation   |      dst      |      src      |    reserved   | 
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 1 | 1 | 0 | 0 |                     must be zero                      | - ret 
+
+Return:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 1 | 1 | 0 | 1 |                        address                        | - call
+  | 1 | 1 | 0 | 0 |                     must be zero                      | 
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 1 | 1 | 1 | 0 |                        address                        | - jump
+
+Call:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  | 1 | 1 | 1 | 1 |    cond   |                     rel                   | - branch
+  | 1 | 1 | 0 | 1 |                        address                        | 
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+JMP:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+  | 1 | 1 | 1 | 0 |                        address                        |
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+Branch:
+   17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+  | 1 | 1 | 1 | 1 |    cond   |                     rel                   | 
   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
  'operation' can be one of the following:
